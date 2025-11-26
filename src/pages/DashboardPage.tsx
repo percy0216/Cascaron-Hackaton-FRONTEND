@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
 import Layout from '../components/Layout';
 import ProductForm from '../components/ProductForm';
-import type { DashboardResponse, DashboardKPIs, SunatStatus } from '../types';
+// Importamos los tipos para que TypeScript no se queje
+import type { DashboardResponse, DashboardKPIs } from '../types';
 
 const DashboardPage: React.FC = () => {
     const [data, setData] = useState<DashboardResponse | null>(null);
@@ -20,11 +21,17 @@ const DashboardPage: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const kpis = data?.kpis || { ventas_hoy: "...", ganancia_hoy: "...", productos_stock_bajo: 0 };
+    // CORRECCIÓN: Tipamos explícitamente 'kpis' para usar el import DashboardKPIs
+    const kpis: DashboardKPIs = data?.kpis || { 
+        ventas_hoy: "...", 
+        ganancia_hoy: "...", 
+        pedidos_hoy: 0, 
+        productos_stock_bajo: 0 
+    };
 
     return (
         <Layout>
-            {/* --- HEADER --- */}
+            {/* --- HEADER CON BRANDING AWS --- */}
             <div style={styles.headerContainer}>
                 <div>
                     <h1 style={styles.pageTitle}>Panel de Control</h1>
@@ -42,7 +49,7 @@ const DashboardPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* --- KPI CARDS --- */}
+            {/* --- GRID DE KPIS (SE EXPANDE) --- */}
             <div style={styles.grid}>
                 {/* Tarjeta Ventas */}
                 <div style={styles.kpiCard}>
@@ -88,8 +95,8 @@ const DashboardPage: React.FC = () => {
                     </div>
                     <div style={styles.widgetBody}>
                         <div style={{fontSize: '3.5rem', marginBottom: '10px'}}>🛡️</div>
-                        <h4 style={styles.statusTitle}>{data?.sunat.estado}</h4>
-                        <p style={styles.statusText}>{data?.sunat.mensaje}</p>
+                        <h4 style={styles.statusTitle}>{data?.sunat.estado || "Cargando..."}</h4>
+                        <p style={styles.statusText}>{data?.sunat.mensaje || "Analizando flujo de caja..."}</p>
                         <div style={styles.divider}></div>
                         <small style={{color: '#94a3b8'}}>Actualizado: Hace un momento</small>
                     </div>
@@ -132,7 +139,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     pulse: {
         width: '8px', height: '8px', background: '#10b981',
-        borderRadius: '50%', boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)'
+        borderRadius: '50%', boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)',
+        animation: 'pulse 2s infinite'
     },
     
     // Grid KPIs
