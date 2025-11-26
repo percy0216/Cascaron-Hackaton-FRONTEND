@@ -7,12 +7,12 @@ interface Product {
     nombre: string;
     precio_venta: string;
     stock_actual: number;
-    odoo_id: number;
+    odoo_id: number | null; // Puede ser nulo
 }
 
-const ProductsPage = () => {
+const ProductsPage: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true); // <-- ESTADO DE CARGA
+    const [loading, setLoading] = useState(true); // ESTADO DE CARGA INICIAL
     
     // Estados Modal
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -28,7 +28,7 @@ const ProductsPage = () => {
         } catch (e) { 
             console.error(e);
         } finally {
-            setLoading(false); // <-- Termina la carga
+            setLoading(false); // Termina la carga
         }
     };
 
@@ -75,8 +75,8 @@ const ProductsPage = () => {
     const descuento = saleType === 'MAYOR' ? subtotal * 0.05 : 0;
     const totalPagar = subtotal - descuento;
     
-    // 🚨 RENDERING CHECK: Si está cargando, mostramos un mensaje simple
-    if (loading) return <Layout><h1 style={{color: '#64748b'}}>Cargando Inventario...</h1></Layout>;
+    // 🚨 RENDERING CHECK: Muestra estado de carga
+    if (loading) return <Layout><h1 style={{color: '#64748b', fontSize: '1.5rem'}}>Cargando Inventario...</h1></Layout>;
 
     return (
         <Layout>
