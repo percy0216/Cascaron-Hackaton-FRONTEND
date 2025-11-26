@@ -20,12 +20,12 @@ const DashboardPage: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Definimos kpis con valores por defecto para evitar undefined
     const kpis: DashboardKPIs = data?.kpis || { 
         ventas_hoy: "S/ 0.00", 
         ganancia_hoy: "S/ 0.00", 
         pedidos_hoy: 0, 
-        productos_stock_bajo: 0 
+        productos_stock_bajo: 0,
+        low_stock_names: [], 
     };
 
     return (
@@ -37,18 +37,20 @@ const DashboardPage: React.FC = () => {
                     <p style={styles.pageSubtitle}>Resumen ejecutivo en tiempo real</p>
                 </div>
                 
-                {/* Badge AWS Pro */}
+                {/* Badge AWS Pro (ESTRUCTURA Y ESTILO CORREGIDO) */}
                 <div style={styles.awsBadge}>
-                    <div style={styles.pulse}></div>
-                    <div>
+                    <div style={styles.statusDot}></div> 
+                    
+                    <div style={styles.awsTextGroup}>
                         <div style={styles.awsTitle}>AWS CLOUD CONNECTED</div>
                         <div style={styles.awsSubtitle}>us-east-1 • Latency: 45ms</div>
                     </div>
+                    
                     <div style={styles.awsLogo}>AWS</div>
                 </div>
             </div>
 
-            {/* --- KPI CARDS --- */}
+            {/* --- KPI CARDS (Resto del Dashboard) --- */}
             <div style={styles.grid}>
                 {/* Tarjeta Ventas */}
                 <div style={styles.kpiCard}>
@@ -76,7 +78,9 @@ const DashboardPage: React.FC = () => {
                     <div>
                         <h3 style={styles.cardLabel}>Alertas de Stock</h3>
                         <p style={styles.bigNumber}>{kpis.productos_stock_bajo}</p>
-                        <span style={{fontSize: '0.8rem', color: '#c62828'}}>Requiere atención</span>
+                        <span style={{fontSize: '0.8rem', color: '#c62828'}}>
+                            {kpis.productos_stock_bajo > 0 ? kpis.low_stock_names.join(', ') : 'Inventario sin problemas críticos.'}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -87,18 +91,15 @@ const DashboardPage: React.FC = () => {
                     <ProductForm onProductAdded={fetchData} />
                 </div>
                 
-                {/* Widget SUNAT Estilizado - LECTURA SEGURA DE SUNAT */}
+                {/* Widget SUNAT Estilizado */}
                 <div style={styles.sideWidget}>
                     <div style={styles.widgetHeader}>
                         <span>🏛️ Monitor Tributario IA</span>
                     </div>
                     <div style={styles.widgetBody}>
                         <div style={{fontSize: '3.5rem', marginBottom: '10px'}}>🛡️</div>
-                        
-                        {/* 🚨 AQUÍ LA CORRECCIÓN FINAL: Usamos ?. para asegurar la lectura */}
                         <h4 style={styles.statusTitle}>{data?.sunat?.estado || "CONECTANDO..."}</h4>
                         <p style={styles.statusText}>{data?.sunat?.mensaje || "Analizando flujo de caja..."}</p>
-                        
                         <div style={styles.divider}></div>
                         <small style={{color: '#94a3b8'}}>Actualizado: Hace un momento</small>
                     </div>
@@ -108,20 +109,15 @@ const DashboardPage: React.FC = () => {
     );
 };
 
-// --- ESTILOS PREMIUM ---
+// --- ESTILOS PREMIUM (ACTUALIZADOS) ---
 const styles: { [key: string]: React.CSSProperties } = {
     headerContainer: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'end',
-        marginBottom: '35px',
-        paddingBottom: '20px',
-        borderBottom: '1px solid #e2e8f0'
+        display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: '35px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0'
     },
     pageTitle: { margin: 0, fontSize: '2.2rem', color: '#1e293b', fontWeight: 800, letterSpacing: '-0.5px' },
     pageSubtitle: { margin: '5px 0 0 0', color: '#64748b', fontSize: '1rem' },
 
-    // AWS Badge mejorado
+    // AWS Badge CORREGIDO
     awsBadge: {
         background: '#0f172a', 
         color: 'white',
@@ -129,56 +125,41 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderRadius: '50px',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        gap: '10px', // Reducimos el espacio
         boxShadow: '0 4px 15px rgba(15, 23, 42, 0.15)',
         border: '1px solid #334155'
     },
-    awsTitle: { fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px' },
-    awsSubtitle: { fontSize: '0.65rem', color: '#94a3b8' },
-    awsLogo: {
-        fontWeight: 900, fontSize: '0.9rem', color: '#f59e0b',
-        border: '1px solid #f59e0b', padding: '1px 4px', borderRadius: '3px'
+    statusDot: {
+        width: '10px', height: '10px', background: '#10b981', // Verde estático
+        borderRadius: '50%',
     },
-    pulse: {
-        width: '8px', height: '8px', background: '#10b981',
-        borderRadius: '50%', boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)',
-        animation: 'pulse 2s infinite'
+    awsTextGroup: {
+        lineHeight: 1.2, // Compactamos el texto
+    },
+    awsTitle: { fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', margin: 0 },
+    awsSubtitle: { fontSize: '0.65rem', color: '#94a3b8', margin: 0 },
+    awsLogo: {
+        fontWeight: 900, fontSize: '0.9rem', color: '#ff9900',
+        border: '1px solid #ff9900', padding: '1px 4px', borderRadius: '3px'
     },
     
-    // Grid KPIs
-    grid: { 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '25px',
-        marginBottom: '30px'
-    },
-    kpiCard: { 
-        background: 'white', padding: '25px', borderRadius: '16px', 
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-        display: 'flex', alignItems: 'center', gap: '20px', border: '1px solid #f1f5f9'
-    },
-    iconBox: {
-        width: '50px', height: '50px', borderRadius: '12px', display: 'flex', 
-        alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem'
-    },
+    // Grid KPIs (Resto de estilos)
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px', marginBottom: '30px' },
+    kpiCard: { background: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', display: 'flex', alignItems: 'center', gap: '20px', border: '1px solid #f1f5f9' },
+    iconBox: { width: '50px', height: '50px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' },
     cardLabel: { margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' },
     bigNumber: { fontSize: '2rem', fontWeight: 800, margin: '5px 0', color: '#0f172a' },
     trendPositive: { fontSize: '0.8rem', color: '#10b981', fontWeight: 600, background: '#ecfdf5', padding: '2px 8px', borderRadius: '10px' },
     tagBlue: { fontSize: '0.8rem', color: '#3b82f6', fontWeight: 600, background: '#eff6ff', padding: '2px 8px', borderRadius: '10px' },
 
-    // Layout inferior
     contentGrid: { display: 'flex', gap: '30px', alignItems: 'flex-start', flexWrap: 'wrap' },
     mainContent: { flex: '2', minWidth: '300px' },
     
     sideWidget: {
-        flex: '1', minWidth: '280px', maxWidth: '350px',
-        background: 'white', borderRadius: '16px', overflow: 'hidden',
+        flex: '1', minWidth: '280px', maxWidth: '350px', background: 'white', borderRadius: '16px', overflow: 'hidden',
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0'
     },
-    widgetHeader: {
-        background: 'linear-gradient(to right, #f59e0b, #d97706)',
-        padding: '15px', color: 'white', fontWeight: 'bold', textAlign: 'center', fontSize: '0.95rem'
-    },
+    widgetHeader: { background: 'linear-gradient(to right, #f59e0b, #d97706)', padding: '15px', color: 'white', fontWeight: 'bold', textAlign: 'center', fontSize: '0.95rem' },
     widgetBody: { padding: '30px', textAlign: 'center' },
     statusTitle: { margin: '0 0 10px 0', fontSize: '1.2rem', color: '#1e293b' },
     statusText: { margin: 0, color: '#64748b', lineHeight: '1.5' },

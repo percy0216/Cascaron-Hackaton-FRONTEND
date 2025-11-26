@@ -18,6 +18,8 @@ export interface DashboardKPIs {
     ganancia_hoy: string;
     pedidos_hoy: number;
     productos_stock_bajo: number;
+    // CAMBIO VITAL:
+    low_stock_names: string[]; 
 }
 
 export interface SunatStatus {

@@ -7,19 +7,24 @@ interface Product {
     nombre: string;
     precio_venta: string;
     stock_actual: number;
-    odoo_id: number | null; // Puede ser nulo
+    odoo_id: number | null;
 }
 
-const ProductsPage: React.FC = () => {
+const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true); // ESTADO DE CARGA INICIAL
+    const [loading, setLoading] = useState(true); 
     
-    // Estados Modal
+    // --- ESTADOS PARA VENTA (Modal 1) ---
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [qty, setQty] = useState(1);
     const [saleType, setSaleType] = useState<'MENOR' | 'MAYOR'>('MENOR');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
+
+    // --- ESTADOS PARA EDICIÓN DE STOCK (Modal 2 - NUEVO) ---
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [stockToAdd, setStockToAdd] = useState(1);
+    const [editSuccessMsg, setEditSuccessMsg] = useState('');
 
     const fetchData = async () => {
         try {
@@ -28,27 +33,19 @@ const ProductsPage: React.FC = () => {
         } catch (e) { 
             console.error(e);
         } finally {
-            setLoading(false); // Termina la carga
+            setLoading(false);
         }
     };
 
     useEffect(() => { fetchData(); }, []);
 
-    // --- ACCIONES ---
-    const handleDelete = async (id: number) => {
-        if (!confirm("¿Estás seguro de eliminar este producto?")) return;
-        try {
-            await api.delete(`productos/${id}/`);
-            fetchData();
-        } catch (e) { alert("Error al eliminar"); }
-    };
-
+    // --- ACCIONES DE VENTA ---
     const handleOpenSale = (prod: Product) => {
         setSelectedProduct(prod);
         setQty(1);
         setSaleType('MENOR');
         setSuccessMsg('');
-        setIsModalOpen(true);
+        setIsSaleModalOpen(true);
     };
 
     const handleProcessSale = async () => {
@@ -59,28 +56,67 @@ const ProductsPage: React.FC = () => {
                 cantidad: qty,
                 tipo: saleType
             });
-            setSuccessMsg(`✅ ¡Venta Exitosa! Sincronizado con ERP.`);
+            setSuccessMsg(`✅ ¡Venta Exitosa! Stock actualizado.`);
             fetchData();
         } catch (e) { alert("Error: Stock insuficiente"); }
     };
 
-    const closeModal = () => {
-        setIsModalOpen(false);
-        setSuccessMsg('');
+    const closeSaleModal = () => { setIsSaleModalOpen(false); setSuccessMsg(''); };
+
+
+    // --- ACCIONES DE EDICIÓN DE STOCK (NUEVO) ---
+
+    const handleOpenEdit = (prod: Product) => {
+        setSelectedProduct(prod);
+        setStockToAdd(1); // Valor inicial para agregar
+        setEditSuccessMsg('');
+        setIsEditModalOpen(true);
+    };
+    
+    const handleUpdateStock = async () => {
+        if (!selectedProduct) return;
+        if (stockToAdd <= 0) return alert("La cantidad a agregar debe ser positiva.");
+
+        // El endpoint es PATCH /api/productos/{id}/
+        try {
+            // Enviamos el stock TOTAL (stock_actual + stockToAdd) para asegurar la integridad
+            const newStock = selectedProduct.stock_actual + stockToAdd;
+
+            await api.patch(`productos/${selectedProduct.id}/`, {
+                stock_actual: newStock
+            });
+
+            setEditSuccessMsg(`✅ Stock de ${selectedProduct.nombre} actualizado a ${newStock} unidades.`);
+            fetchData();
+        } catch (e) {
+            alert("Error al actualizar stock.");
+            console.error(e);
+        }
     };
 
+    const closeEditModal = () => { setIsEditModalOpen(false); setEditSuccessMsg(''); };
+
+
+    // --- OTRAS ACCIONES ---
+    const handleDelete = async (id: number) => {
+        if (!confirm("¿Estás seguro de eliminar este producto?")) return;
+        try {
+            await api.delete(`productos/${id}/`);
+            fetchData();
+        } catch (e) { alert("Error al eliminar"); }
+    };
+    
     // --- CÁLCULOS VISUALES ---
     const precioBase = selectedProduct ? parseFloat(selectedProduct.precio_venta) : 0;
     const subtotal = precioBase * qty;
     const descuento = saleType === 'MAYOR' ? subtotal * 0.05 : 0;
     const totalPagar = subtotal - descuento;
     
-    // 🚨 RENDERING CHECK: Muestra estado de carga
-    if (loading) return <Layout><h1 style={{color: '#64748b', fontSize: '1.5rem'}}>Cargando Inventario...</h1></Layout>;
+    if (loading) return <Layout><h1 style={{color: '#64748b'}}>Cargando Inventario...</h1></Layout>;
 
     return (
         <Layout>
-            {/* HEADER */}
+            {/* ... HEADER JSX ... */}
             <div style={styles.headerContainer}>
                 <div>
                     <h1 style={styles.pageTitle}>Inventario</h1>
@@ -140,7 +176,14 @@ const ProductsPage: React.FC = () => {
                                             <button onClick={() => handleOpenSale(p)} style={styles.btnSell} title="Realizar Venta">
                                                 💰 Vender
                                             </button>
-                                            <button style={styles.btnIcon} title="Editar">✏️</button>
+                                            {/* 🚨 BOTÓN EDITAR CON LA NUEVA ACCIÓN */}
+                                            <button 
+                                                onClick={() => handleOpenEdit(p)} 
+                                                style={styles.btnIcon} 
+                                                title="Añadir Stock"
+                                            >
+                                                📦
+                                            </button>
                                             <button onClick={() => handleDelete(p.id)} style={{...styles.btnIcon, color: '#ef4444'}} title="Eliminar">🗑️</button>
                                         </div>
                                     </td>
@@ -151,25 +194,22 @@ const ProductsPage: React.FC = () => {
                 )}
             </div>
 
-            {/* --- MODAL DE VENTA --- */}
-            {isModalOpen && selectedProduct && (
+            {/* --- MODAL DE VENTA (isSaleModalOpen) --- */}
+            {isSaleModalOpen && selectedProduct && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.modal}>
                         <div style={styles.modalHeader}>
                             <h2 style={{margin:0, fontSize:'1.2rem'}}>Nueva Venta</h2>
-                            <button onClick={closeModal} style={styles.closeBtn}>✕</button>
+                            <button onClick={closeSaleModal} style={styles.closeBtn}>✕</button>
                         </div>
-                        
+                        {/* ... (Contenido del modal de venta) ... */}
                         <div style={styles.modalBody}>
-                            {/* Si hay éxito, mostramos mensaje y botón Odoo */}
                             {successMsg ? (
                                 <div style={{textAlign: 'center', padding: '10px'}}>
                                     <div style={styles.successBox}>{successMsg}</div>
-                                    
                                     <p style={{color: '#64748b', marginBottom: '15px', marginTop: '10px'}}>
                                         La transacción ha sido registrada en la nube.
                                     </p>
-
                                     <a 
                                         href="http://18.221.230.36:8069/web#action=account.action_move_out_invoice_type&model=account.move&view_type=list" 
                                         target="_blank" 
@@ -178,14 +218,12 @@ const ProductsPage: React.FC = () => {
                                     >
                                         📄 VER FACTURA EN ODOO
                                     </a>
-                                    
-                                    <button onClick={closeModal} style={{...styles.btnConfirm, background: '#94a3b8', marginTop: '15px'}}>
+                                    <button onClick={closeSaleModal} style={{...styles.btnConfirm, background: '#94a3b8', marginTop: '15px'}}>
                                         Cerrar Ventana
                                     </button>
                                 </div>
                             ) : (
                                 <>
-                                    {/* Formulario Normal */}
                                     <div style={{marginBottom:'15px'}}>
                                         <span style={{display:'block', color:'#64748b', fontSize:'0.8rem'}}>Producto</span>
                                         <strong style={{fontSize:'1.1rem'}}>{selectedProduct.nombre}</strong>
@@ -205,7 +243,6 @@ const ProductsPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Resumen Financiero */}
                                     <div style={styles.summaryBox}>
                                         <div style={styles.summaryRow}><span>Precio Unit.:</span> <span>S/ {precioBase.toFixed(2)}</span></div>
                                         <div style={styles.summaryRow}><span>Subtotal ({qty} u.):</span> <span>S/ {subtotal.toFixed(2)}</span></div>
@@ -215,6 +252,58 @@ const ProductsPage: React.FC = () => {
                                     </div>
 
                                     <button onClick={handleProcessSale} style={styles.btnConfirm}>CONFIRMAR VENTA</button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+            {/* --- MODAL DE EDICIÓN DE STOCK (NUEVO) --- */}
+            {isEditModalOpen && selectedProduct && (
+                <div style={styles.modalOverlay}>
+                    <div style={styles.modal}>
+                        <div style={styles.modalHeader}>
+                            <h2 style={{margin:0, fontSize:'1.2rem'}}>Añadir Stock</h2>
+                            <button onClick={closeEditModal} style={styles.closeBtn}>✕</button>
+                        </div>
+                        
+                        <div style={styles.modalBody}>
+                            {editSuccessMsg ? (
+                                <div style={{textAlign: 'center', padding: '10px'}}>
+                                    <div style={styles.successBox}>{editSuccessMsg}</div>
+                                    <button onClick={closeEditModal} style={{...styles.btnConfirm, background: '#94a3b8', marginTop: '15px'}}>
+                                        Cerrar
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div style={{marginBottom:'20px'}}>
+                                        <span style={{display:'block', color:'#64748b', fontSize:'0.8rem'}}>Producto Seleccionado</span>
+                                        <strong style={{fontSize:'1.1rem'}}>{selectedProduct.nombre}</strong>
+                                        <p style={{margin: '5px 0 0 0', color: '#16a34a', fontWeight: 'bold'}}>Stock Actual: {selectedProduct.stock_actual}</p>
+                                    </div>
+                                    
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.label}>Cantidad a Añadir</label>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            value={stockToAdd} 
+                                            onChange={(e) => setStockToAdd(parseInt(e.target.value) || 0)} 
+                                            style={styles.input} 
+                                        />
+                                    </div>
+
+                                    <div style={{...styles.summaryBox, marginTop: '20px', textAlign: 'center'}}>
+                                        <span style={styles.cardLabel}>NUEVO STOCK TOTAL ESTIMADO:</span>
+                                        <p style={styles.bigNumber}>{selectedProduct.stock_actual + stockToAdd}</p>
+                                    </div>
+
+                                    <button onClick={handleUpdateStock} style={{...styles.btnConfirm, background: '#059669'}}>
+                                        CONFIRMAR AJUSTE DE STOCK
+                                    </button>
                                 </>
                             )}
                         </div>
@@ -235,7 +324,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     pageSubtitle: { margin: '5px 0 0 0', color: '#64748b', fontSize: '0.9rem' },
     totalBadge: { background: '#fff', padding: '8px 16px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', color: '#64748b', fontSize: '0.9rem' },
 
-    // Tabla
+    cardContainer: {
+        background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        overflow: 'hidden', border: '1px solid #f1f5f9'
+    },
+    
     tableContainer: {
         background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
         overflow: 'hidden', border: '1px solid #f1f5f9'
@@ -245,7 +338,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     th: { padding: '16px 24px', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' },
     tr: { borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' },
     td: { padding: '16px 24px', fontSize: '0.95rem' },
-    
+
     priceTag: { fontWeight: 600, color: '#1e293b' },
     stockBadge: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-block' },
     odooBadge: { background: '#fff7ed', color: '#c2410c', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #ffedd5', display: 'inline-flex', alignItems: 'center', gap: '5px' },
@@ -283,18 +376,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     successBox: { background: '#ecfdf5', color: '#065f46', padding: '15px', borderRadius: '10px', textAlign: 'center', fontWeight: 500 },
     
     btnInvoice: {
-        display: 'inline-block',
-        padding: '12px 20px',
-        background: '#714b67', // Color Odoo
-        color: 'white',
-        textDecoration: 'none',
-        borderRadius: '8px',
-        fontWeight: 'bold',
-        boxShadow: '0 4px 6px rgba(113, 75, 103, 0.3)',
-        transition: '0.2s',
-        border: '1px solid #5d3d55',
-        fontSize: '0.9rem'
+        display: 'inline-block', padding: '12px 20px', background: '#714b67', color: 'white',
+        textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(113, 75, 103, 0.3)',
+        transition: '0.2s', border: '1px solid #5d3d55', fontSize: '0.9rem'
     },
+    cardLabel: { margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' },
+    bigNumber: { fontSize: '2rem', fontWeight: 800, margin: '5px 0', color: '#0f172a' },
 };
 
 export default ProductsPage;
