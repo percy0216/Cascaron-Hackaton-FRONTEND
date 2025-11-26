@@ -1,8 +1,10 @@
-// src/api/axiosConfig.ts
 import axios from 'axios';
 
+// Vite usa import.meta.env en lugar de process.env
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/';
+
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api/',
+    baseURL: apiUrl, // <--- AQUÍ USAMOS LA VARIABLE
     timeout: 5000,
     headers: {
         'Content-Type': 'application/json'
