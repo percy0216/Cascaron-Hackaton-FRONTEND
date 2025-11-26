@@ -12,6 +12,7 @@ interface Product {
 
 const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true); // <-- ESTADO DE CARGA
     
     // Estados Modal
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -20,14 +21,22 @@ const ProductsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
-    const fetchData = () => {
-        api.get('productos/').then(res => setProducts(res.data));
+    const fetchData = async () => {
+        try {
+            const res = await api.get('productos/');
+            setProducts(res.data);
+        } catch (e) { 
+            console.error(e);
+        } finally {
+            setLoading(false); // <-- Termina la carga
+        }
     };
 
     useEffect(() => { fetchData(); }, []);
 
+    // --- ACCIONES ---
     const handleDelete = async (id: number) => {
-        if (!confirm("¿Eliminar producto permanentemente?")) return;
+        if (!confirm("¿Estás seguro de eliminar este producto?")) return;
         try {
             await api.delete(`productos/${id}/`);
             fetchData();
@@ -52,7 +61,6 @@ const ProductsPage = () => {
             });
             setSuccessMsg(`✅ ¡Venta Exitosa! Sincronizado con ERP.`);
             fetchData();
-            // NO cerramos el modal automáticamente para que puedan dar clic al botón de factura
         } catch (e) { alert("Error: Stock insuficiente"); }
     };
 
@@ -66,6 +74,9 @@ const ProductsPage = () => {
     const subtotal = precioBase * qty;
     const descuento = saleType === 'MAYOR' ? subtotal * 0.05 : 0;
     const totalPagar = subtotal - descuento;
+    
+    // 🚨 RENDERING CHECK: Si está cargando, mostramos un mensaje simple
+    if (loading) return <Layout><h1 style={{color: '#64748b'}}>Cargando Inventario...</h1></Layout>;
 
     return (
         <Layout>
@@ -82,58 +93,62 @@ const ProductsPage = () => {
             
             {/* TABLA CARD */}
             <div style={styles.tableContainer}>
-                <table style={styles.table}>
-                    <thead>
-                        <tr style={styles.theadRow}>
-                            <th style={styles.th}>Producto</th>
-                            <th style={styles.th}>Precio Unit.</th>
-                            <th style={styles.th}>Stock Físico</th>
-                            <th style={styles.th}>Sincronización</th>
-                            <th style={{...styles.th, textAlign: 'right'}}>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {products.map(p => (
-                            <tr key={p.id} style={styles.tr}>
-                                <td style={styles.td}>
-                                    <div style={{fontWeight: 'bold', color: '#334155'}}>{p.nombre}</div>
-                                    <div style={{fontSize: '0.75rem', color: '#94a3b8'}}>ID: {p.id}</div>
-                                </td>
-                                <td style={styles.td}>
-                                    <span style={styles.priceTag}>S/ {p.precio_venta}</span>
-                                </td>
-                                <td style={styles.td}>
-                                    <span style={{
-                                        ...styles.stockBadge,
-                                        background: p.stock_actual < 10 ? '#fef2f2' : '#f0fdf4',
-                                        color: p.stock_actual < 10 ? '#ef4444' : '#16a34a',
-                                        border: p.stock_actual < 10 ? '1px solid #fecaca' : '1px solid #bbf7d0'
-                                    }}>
-                                        {p.stock_actual} unid.
-                                    </span>
-                                </td>
-                                <td style={styles.td}>
-                                    {p.odoo_id ? (
-                                        <span style={styles.odooBadge}>
-                                            <span style={{fontSize:'10px'}}>☁️</span> AWS #{p.odoo_id}
-                                        </span>
-                                    ) : (
-                                        <span style={{color: '#94a3b8', fontSize: '0.8rem'}}>⏳ Pendiente</span>
-                                    )}
-                                </td>
-                                <td style={{...styles.td, textAlign: 'right'}}>
-                                    <div style={styles.actionGroup}>
-                                        <button onClick={() => handleOpenSale(p)} style={styles.btnSell} title="Realizar Venta">
-                                            💰 Vender
-                                        </button>
-                                        <button style={styles.btnIcon} title="Editar">✏️</button>
-                                        <button onClick={() => handleDelete(p.id)} style={{...styles.btnIcon, color: '#ef4444'}} title="Eliminar">🗑️</button>
-                                    </div>
-                                </td>
+                {products.length === 0 ? (
+                    <p style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No hay productos. ¡Crea uno!</p>
+                ) : (
+                    <table style={styles.table}>
+                        <thead>
+                            <tr style={styles.theadRow}>
+                                <th style={styles.th}>Producto</th>
+                                <th style={styles.th}>Precio Unit.</th>
+                                <th style={styles.th}>Stock Físico</th>
+                                <th style={styles.th}>Sincronización</th>
+                                <th style={{...styles.th, textAlign: 'right'}}>Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {products.map(p => (
+                                <tr key={p.id} style={styles.tr}>
+                                    <td style={styles.td}>
+                                        <div style={{fontWeight: 'bold', color: '#334155'}}>{p.nombre}</div>
+                                        <div style={{fontSize: '0.75rem', color: '#94a3b8'}}>ID: {p.id}</div>
+                                    </td>
+                                    <td style={styles.td}>
+                                        <span style={styles.priceTag}>S/ {p.precio_venta}</span>
+                                    </td>
+                                    <td style={styles.td}>
+                                        <span style={{
+                                            ...styles.stockBadge,
+                                            background: p.stock_actual < 10 ? '#fef2f2' : '#f0fdf4',
+                                            color: p.stock_actual < 10 ? '#ef4444' : '#16a34a',
+                                            border: p.stock_actual < 10 ? '1px solid #fecaca' : '1px solid #bbf7d0'
+                                        }}>
+                                            {p.stock_actual} unid.
+                                        </span>
+                                    </td>
+                                    <td style={styles.td}>
+                                        {p.odoo_id ? (
+                                            <span style={styles.odooBadge}>
+                                                <span style={{fontSize:'10px'}}>☁️</span> AWS #{p.odoo_id}
+                                            </span>
+                                        ) : (
+                                            <span style={{color: '#94a3b8', fontSize: '0.8rem'}}>⏳ Pendiente</span>
+                                        )}
+                                    </td>
+                                    <td style={{...styles.td, textAlign: 'right'}}>
+                                        <div style={styles.actionGroup}>
+                                            <button onClick={() => handleOpenSale(p)} style={styles.btnSell} title="Realizar Venta">
+                                                💰 Vender
+                                            </button>
+                                            <button style={styles.btnIcon} title="Editar">✏️</button>
+                                            <button onClick={() => handleDelete(p.id)} style={{...styles.btnIcon, color: '#ef4444'}} title="Eliminar">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             {/* --- MODAL DE VENTA --- */}
@@ -267,7 +282,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     
     successBox: { background: '#ecfdf5', color: '#065f46', padding: '15px', borderRadius: '10px', textAlign: 'center', fontWeight: 500 },
     
-    // Botón Factura Odoo
     btnInvoice: {
         display: 'inline-block',
         padding: '12px 20px',

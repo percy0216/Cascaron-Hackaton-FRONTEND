@@ -11,10 +11,17 @@ interface Sale {
 
 const SalesPage = () => {
     const [sales, setSales] = useState<Sale[]>([]);
+    const [loading, setLoading] = useState(true); // <-- ESTADO DE CARGA
 
     useEffect(() => {
-        api.get('ventas/').then(res => setSales(res.data)).catch(console.error);
+        api.get('ventas/')
+            .then(res => setSales(res.data))
+            .catch(console.error)
+            .finally(() => setLoading(false)); // <-- Termina la carga
     }, []);
+
+    // Si está cargando, mostramos un mensaje
+    if (loading) return <Layout><h1 style={{color: '#64748b', fontSize: '1.5rem'}}>Cargando Historial de Ventas...</h1></Layout>;
 
     return (
         <Layout>
@@ -25,19 +32,19 @@ const SalesPage = () => {
                     <p style={styles.pageSubtitle}>Registro de transacciones y flujo de caja</p>
                 </div>
                 <div style={styles.totalBadge}>
-                    Movimientos: <strong>{sales.length}</strong>
+                    Total Ventas: <strong>{sales.length}</strong>
                 </div>
             </div>
 
             {/* LISTA DE TRANSACCIONES */}
             <div style={styles.cardContainer}>
                 {sales.length === 0 ? (
-                    <div style={styles.emptyState}>No hay ventas registradas hoy.</div>
+                    <div style={styles.emptyState}>No hay ventas registradas. ¡Vende algo primero!</div>
                 ) : (
                     <table style={styles.table}>
                         <thead>
                             <tr style={styles.theadRow}>
-                                <th style={styles.th}>ID Transacción</th>
+                                <th style={styles.th}>ID</th>
                                 <th style={styles.th}>Estado</th>
                                 <th style={styles.th}>Fecha y Hora</th>
                                 <th style={{...styles.th, textAlign: 'right'}}>Monto Total</th>
@@ -73,7 +80,7 @@ const SalesPage = () => {
     );
 };
 
-// --- ESTILOS FINANCIEROS ---
+// --- ESTILOS DE LA PÁGINA (Consistencia con ProductosPage) ---
 const styles: { [key: string]: React.CSSProperties } = {
     headerContainer: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -83,7 +90,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     pageSubtitle: { margin: '5px 0 0 0', color: '#64748b', fontSize: '0.9rem' },
     totalBadge: { background: '#fff', padding: '8px 16px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', color: '#64748b', fontSize: '0.9rem' },
 
-    // Contenedor Principal
+    // Contenedor Principal (Tabla)
     cardContainer: {
         background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
         overflow: 'hidden', border: '1px solid #f1f5f9'
