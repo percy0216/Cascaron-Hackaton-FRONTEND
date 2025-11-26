@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
 import Layout from '../components/Layout';
 import ProductForm from '../components/ProductForm';
-// Importamos los tipos para que TypeScript no se queje
 import type { DashboardResponse, DashboardKPIs } from '../types';
 
 const DashboardPage: React.FC = () => {
@@ -12,7 +11,7 @@ const DashboardPage: React.FC = () => {
         try {
             const res = await api.get<DashboardResponse>('dashboard/');
             setData(res.data);
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error("Error al cargar dashboard: ", err); }
     };
 
     useEffect(() => {
@@ -21,17 +20,17 @@ const DashboardPage: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // CORRECCIÓN: Tipamos explícitamente 'kpis' para usar el import DashboardKPIs
+    // Definimos kpis con valores por defecto para evitar undefined
     const kpis: DashboardKPIs = data?.kpis || { 
-        ventas_hoy: "...", 
-        ganancia_hoy: "...", 
+        ventas_hoy: "S/ 0.00", 
+        ganancia_hoy: "S/ 0.00", 
         pedidos_hoy: 0, 
         productos_stock_bajo: 0 
     };
 
     return (
         <Layout>
-            {/* --- HEADER CON BRANDING AWS --- */}
+            {/* --- HEADER --- */}
             <div style={styles.headerContainer}>
                 <div>
                     <h1 style={styles.pageTitle}>Panel de Control</h1>
@@ -49,7 +48,7 @@ const DashboardPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* --- GRID DE KPIS (SE EXPANDE) --- */}
+            {/* --- KPI CARDS --- */}
             <div style={styles.grid}>
                 {/* Tarjeta Ventas */}
                 <div style={styles.kpiCard}>
@@ -88,15 +87,18 @@ const DashboardPage: React.FC = () => {
                     <ProductForm onProductAdded={fetchData} />
                 </div>
                 
-                {/* Widget SUNAT Estilizado */}
+                {/* Widget SUNAT Estilizado - LECTURA SEGURA DE SUNAT */}
                 <div style={styles.sideWidget}>
                     <div style={styles.widgetHeader}>
                         <span>🏛️ Monitor Tributario IA</span>
                     </div>
                     <div style={styles.widgetBody}>
                         <div style={{fontSize: '3.5rem', marginBottom: '10px'}}>🛡️</div>
-                        <h4 style={styles.statusTitle}>{data?.sunat.estado || "Cargando..."}</h4>
-                        <p style={styles.statusText}>{data?.sunat.mensaje || "Analizando flujo de caja..."}</p>
+                        
+                        {/* 🚨 AQUÍ LA CORRECCIÓN FINAL: Usamos ?. para asegurar la lectura */}
+                        <h4 style={styles.statusTitle}>{data?.sunat?.estado || "CONECTANDO..."}</h4>
+                        <p style={styles.statusText}>{data?.sunat?.mensaje || "Analizando flujo de caja..."}</p>
+                        
                         <div style={styles.divider}></div>
                         <small style={{color: '#94a3b8'}}>Actualizado: Hace un momento</small>
                     </div>
