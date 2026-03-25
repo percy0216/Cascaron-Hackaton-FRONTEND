@@ -39,16 +39,15 @@ const Chatbot: React.FC = () => {
         setInputStr("");
     };
 
-    // --- FUNCIÓN MÁGICA PARA NEGRITAS ---
-    // Convierte "**texto**" en <strong>texto</strong> visualmente
+    // --- FUNCIÓN PARA NEGRITAS ---
     const formatMessage = (text: string) => {
         return text.split('\n').map((line, i) => {
             const parts = line.split(/(\*\*.*?\*\*)/g);
             return (
-                <div key={i} style={{ minHeight: '1.2em' }}>
+                <div key={i} className="min-h-[1.2em]">
                     {parts.map((part, j) => {
                         if (part.startsWith('**') && part.endsWith('**')) {
-                            return <strong key={j}>{part.slice(2, -2)}</strong>;
+                            return <strong key={j} className="font-bold">{part.slice(2, -2)}</strong>;
                         }
                         return <span key={j}>{part}</span>;
                     })}
@@ -58,105 +57,126 @@ const Chatbot: React.FC = () => {
     };
 
     return (
-        <div style={styles.wrapper}>
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[2000] flex flex-col items-end font-sans">
+            
+            {/* Ventana de Chat */}
             {isOpen && (
-                <div style={styles.window}>
-                    <div style={styles.header}>
-                        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-                            <span style={{fontSize:'1.5rem'}}>🤖</span>
+                <div className="mb-4 w-[calc(100vw-2rem)] sm:w-[360px] h-[500px] max-h-[calc(100vh-8rem)] bg-slate-50 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in fade-in slide-in-from-bottom-5 duration-200 origin-bottom-right">
+                    
+                    {/* Header */}
+                    <div className="bg-slate-900 p-4 flex justify-between items-center shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-xl shadow-sm">
+                                🤖
+                            </div>
                             <div>
-                                <span style={{display:'block', fontWeight:'bold'}}>TaxBot SUNAT</span>
-                                <span style={{fontSize:'0.7rem', opacity:0.8}}>En línea • IA Activa</span>
+                                <span className="block font-bold text-white tracking-wide text-sm">TaxBot SUNAT</span>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">IA Activa</span>
+                                </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsOpen(false)} style={styles.closeBtn}>×</button>
+                        <button 
+                            onClick={() => setIsOpen(false)} 
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                        >
+                            ✕
+                        </button>
                     </div>
 
-                    <div style={styles.body}>
+                    {/* Body */}
+                    <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3 bg-slate-50">
                         {messages.map((m, i) => (
-                            <div key={i} style={{
-                                ...styles.message,
-                                alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
-                                background: m.sender === 'user' ? '#dcf8c6' : 'white',
-                                borderBottomRightRadius: m.sender === 'user' ? '0' : '10px',
-                                borderBottomLeftRadius: m.sender === 'bot' ? '0' : '10px',
-                            }}>
-                                {/* Usamos el formateador aquí */}
+                            <div 
+                                key={i} 
+                                className={`px-4 py-2.5 max-w-[85%] text-sm shadow-sm ${
+                                    m.sender === 'user' 
+                                    ? 'self-end bg-indigo-600 text-white rounded-2xl rounded-tr-sm' 
+                                    : 'self-start bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-sm'
+                                }`}
+                            >
                                 {formatMessage(m.text)}
                             </div>
                         ))}
-                        {isTyping && <div style={{...styles.message, color:'#888', fontStyle:'italic'}}>Escribiendo...</div>}
+                        {isTyping && (
+                            <div className="self-start px-4 py-2.5 max-w-[85%] bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* --- AQUÍ ESTÁ TU BOTÓN NUEVO --- */}
-                    <div style={styles.quickActions}>
-                        <button onClick={() => sendMessage('Impuesto hoy')} style={{...styles.chip, background: '#e3f2fd', color: '#1565c0', border: '1px solid #1565c0'}}>
+                    {/* Quick Actions */}
+                    <div className="p-3 flex gap-2 overflow-x-auto bg-white border-t border-slate-100 shrink-0 scrollbar-hide">
+                        <button 
+                            onClick={() => sendMessage('Impuesto hoy')} 
+                            className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full text-[11px] font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                        >
                             ⚖️ Impuestos
                         </button>
-                        <button onClick={() => sendMessage('¿Tengo deuda?')} style={styles.chip}>🚨 Deuda</button>
-                        <button onClick={() => sendMessage('Ventas de hoy')} style={styles.chip}>💰 Ventas</button>
-                        <button onClick={() => sendMessage('Alerta Stock')} style={styles.chip}>📦 Stock</button>
+                        <button 
+                            onClick={() => sendMessage('¿Tengo deuda?')} 
+                            className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                        >
+                            🚨 Deuda
+                        </button>
+                        <button 
+                            onClick={() => sendMessage('Ventas de hoy')} 
+                            className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                        >
+                            💰 Ventas
+                        </button>
+                        <button 
+                            onClick={() => sendMessage('Alerta Stock')} 
+                            className="shrink-0 whitespace-nowrap px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                        >
+                            📦 Stock
+                        </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} style={styles.footer}>
-                        <input style={styles.input} value={inputStr} onChange={e => setInputStr(e.target.value)} placeholder="..." />
-                        <button style={styles.sendBtn}>➤</button>
+                    {/* Footer / Input */}
+                    <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-slate-100 flex gap-2 shrink-0">
+                        <input 
+                            className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                            value={inputStr} 
+                            onChange={e => setInputStr(e.target.value)} 
+                            placeholder="Escribe tu consulta..." 
+                        />
+                        <button 
+                            type="submit"
+                            className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors shadow-sm shrink-0"
+                            disabled={!inputStr.trim()}
+                        >
+                            <svg className="w-4 h-4 translate-x-px" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
                     </form>
                 </div>
             )}
 
-            <button onClick={() => setIsOpen(!isOpen)} style={styles.fab}>
-                {isOpen ? '💬' : '🤖'}
-                {!isOpen && <span style={styles.notificationDot}>1</span>}
+            {/* Floating Action Button */}
+            <button 
+                onClick={() => setIsOpen(!isOpen)} 
+                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-500/30 ${
+                    isOpen ? 'bg-slate-800 text-white' : 'bg-indigo-600 text-white'
+                }`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+                {isOpen ? '✕' : '💬'}
+                {!isOpen && (
+                    <span className="absolute 0 top-0 right-0 w-5 h-5 bg-red-500 border-2 border-slate-50 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
+                        1
+                    </span>
+                )}
             </button>
+            
         </div>
     );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-    wrapper: { position: 'fixed', bottom: '30px', right: '30px', zIndex: 2000 },
-    fab: { 
-        width: '65px', height: '65px', borderRadius: '50%', background: '#075e54', 
-        color: 'white', fontSize: '30px', border: 'none', cursor: 'pointer', 
-        boxShadow: '0 4px 15px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        position: 'relative', transition: 'transform 0.2s'
-    },
-    notificationDot: {
-        position: 'absolute', top: '0', right: '0', width: '20px', height: '20px',
-        background: '#e74c3c', borderRadius: '50%', border: '2px solid white',
-        fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'
-    },
-    window: {
-        position: 'absolute', bottom: '80px', right: '0', width: '340px', height: '500px', // Un poco más grande
-        background: '#e5ddd5', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #ccc'
-    },
-    header: { 
-        background: '#075e54', color: 'white', padding: '15px', 
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
-    },
-    closeBtn: { background: 'transparent', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' },
-    body: { 
-        flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px',
-        backgroundImage: 'linear-gradient(#e5ddd5 2px, transparent 2px), linear-gradient(90deg, #e5ddd5 2px, transparent 2px)',
-        backgroundSize: '20px 20px'
-    },
-    message: { 
-        padding: '10px 15px', borderRadius: '10px', maxWidth: '85%', fontSize: '0.95rem', 
-        boxShadow: '0 1px 2px rgba(0,0,0,0.1)', lineHeight: '1.4'
-    },
-    quickActions: {
-        padding: '10px', display: 'flex', gap: '8px', overflowX: 'auto', background: '#f0f0f0', borderTop: '1px solid #ddd'
-    },
-    chip: {
-        background: 'white', border: '1px solid #075e54', color: '#075e54', 
-        padding: '6px 12px', borderRadius: '15px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold',
-        whiteSpace: 'nowrap'
-    },
-    footer: { padding: '10px', display: 'flex', gap: '8px', background: 'white' },
-    input: { flex: 1, padding: '10px', borderRadius: '20px', border: '1px solid #ccc', outline: 'none' },
-    sendBtn: { background: '#128c7e', color: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', fontSize: '1.2rem' }
 };
 
 export default Chatbot;
